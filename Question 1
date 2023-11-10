@@ -1,0 +1,165 @@
+#Course 4338: Assignment 1 
+#Group : Shivani Gaikwad (42664), Shuanghao Tang, Xinrui Xu, Min Xu 
+
+
+#Initialize
+rm(list = ls())
+
+options(digits = 4)
+options(width = 75)
+options(chmhelp=TRUE)
+
+# libraries
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(moments)
+library(MASS)
+library(lubridate) 
+
+#Question 1 
+
+#1a) Importing data
+Monthly_returns<-read_xlsx("HW1_data/data_assignment1.xlsx") 
+Monthly_returns$Date<-ymd(Monthly_returns$DATE)
+
+#1b) Simple returns into log returns 
+Log_returns<-cbind(Monthly_returns[7],log(Monthly_returns[2:6]+1))
+
+#1c) Plotting series - log returns
+Plot_1<-ggplot(Log_returns,aes(x=Date,y=COCACOLA, colours()))+geom_point()+ggtitle("Log returns")+
+theme_classic()
+Plot_2<-ggplot(Log_returns,aes(x=Date,y=GE, colours()))+geom_point()+ggtitle("Log returns")+
+  theme_classic()
+Plot_3<-ggplot(Log_returns,aes(x=Date,y=IBM, colours()))+geom_point()+ggtitle("Log returns")+
+  theme_classic()
+Plot_4<-ggplot(Log_returns,aes(x=Date,y=VWRET, colours()))+geom_point()+ggtitle("Log returns")+
+  theme_classic()
+Plot_5<-ggplot(Log_returns,aes(x=Date,y=EWRET, colours()))+geom_point()+ggtitle("Log returns")+
+  theme_classic() 
+#Plotting series - simple returns 
+Plot_6<-ggplot(Monthly_returns,aes(x=Date,y=COCACOLA, colours()))+geom_point()+ggtitle("Simple returns")+
+  theme_classic()
+Plot_7<-ggplot(Monthly_returns,aes(x=Date,y=GE, colours()))+geom_point()+ggtitle("Simple returns")+
+  theme_classic()
+Plot_8<-ggplot(Monthly_returns,aes(x=Date,y=IBM, colours()))+geom_point()+ggtitle("Simple returns")+
+  theme_classic()
+Plot_9<-ggplot(Monthly_returns,aes(x=Date,y=VWRET, colours()))+geom_point()+ggtitle("Simple returns")+
+  theme_classic()
+Plot_10<-ggplot(Monthly_returns,aes(x=Date,y=EWRET, colours()))+geom_point()+ggtitle("Simple returns")+
+  theme_classic()
+#Coca Cola 
+Plot_1/Plot_6
+#GE
+Plot_2/Plot_7
+#IBM
+Plot_3/Plot_8 
+#VWRET
+Plot_4/Plot_9
+#EWRET
+Plot_5/Plot_10
+
+#1d) Plotting scatter plots against VWRET
+Plot_CC<-ggplot(Log_returns,aes(x=VWRET,y=COCACOLA, colours()))+geom_point()+  geom_smooth(method = "lm", se = FALSE) +
+  theme_classic()
+Plot_GE<-ggplot(Log_returns,aes(x=VWRET,y=GE, colours()))+geom_point()+  geom_smooth(method = "lm", se = FALSE) +
+  theme_classic()
+
+Plot_IBM<-ggplot(Log_returns,aes(x=VWRET,y=IBM, colours()))+geom_point()+  geom_smooth(method = "lm", se = FALSE) +
+  theme_classic()
+Plot_CC
+Plot_GE
+Plot_IBM
+
+#1e) Computation of statistics for log returns series  
+Means<-colMeans(Log_returns[2:6])
+Variances<-sapply(Log_returns[2:6],var)
+Skewness<-sapply(Log_returns[2:6],skewness)
+Kurtosis<-sapply(Log_returns[2:6],kurtosis)-3
+Minimum<-sapply(Log_returns[2:6],min)
+Maximum<-sapply(Log_returns[2:6],max)
+
+#1f) T-test for log returns' means 
+T_stat<-sapply(Log_returns[2:6],t.test)
+ifelse(T_stat[3,]<0.05,"Sample mean is statistically significant","Sample mean is not statistically different from zero")
+
+#D'Agostino test for skewness 
+
+Agostino_Test<-sapply(Log_returns[2:6],agostino.test)
+ifelse(Agostino_Test[2,]<0.05,"Skewness is statistically significant","Skewness is not statistically different from zero")
+
+#Anscombe test for kurtosis 
+Anscombe_Test<-sapply(Log_returns[2:6],anscombe.test)
+ifelse(Anscombe_Test[2,]<0.05,"Kurtosis is statistically significant","Kurtosis is not statistically different from zero")
+
+#1g) Histograms and Jarque-Bera test 
+
+# Define a Student t distribution with shape (nu - SD) and location (mu - Mean)
+
+df_COCACOLA<-fitdistr(unlist(Log_returns[2]),"t")
+df_GE<-fitdistr(unlist(Log_returns[3]),"t")
+
+dt2 <- function(x, mu, nu, df, ncp) {
+ dt((x-mu)/nu,df,ncp)/nu
+}
+
+
+#Histograms + Normal distributions + T-distribution 
+ggplot(Log_returns,aes(x=COCACOLA))+geom_histogram(aes(y=..density..), fill="salmon",colour="black",binwidth=0.01, position="dodge",alpha=0.5) +
+ stat_function(fun=dnorm, args = list(mean=Means[1],sd=sqrt(Variances[1])), aes( colour="Normal"),linewidth=1) +
+  stat_function(fun =dt2,args = list(mu=Means[1], nu=sqrt(Variances[1]), df=df_COCACOLA[["estimate"]][["df"]]), aes(colour = 'Student t'), lwd=1) +
+labs(title="Coca Cola Histogram") +
+ xlab("COCA COLA") +
+  ylab("DENSITY") +
+  theme_minimal()
+ 
+              
+ggplot(Log_returns,aes(x=GE))+geom_histogram(aes(y=..density..), fill="salmon",colour="black",binwidth=0.01, position="dodge", alpha=0.5)+
+  stat_function(fun=dnorm, args = list(mean=Means[2],sd=sqrt(Variances[2])), aes( colour="Normal"),linewidth =1) +
+  stat_function(fun=dt2, args = list(mu=Means[2], nu=sqrt(Variances[2]), df=587, ncp=1), aes(colour = 'Student t'), lwd=1) +
+  labs(title="GE Histogram")+
+  xlab("GE") +
+  ylab("DENSITY") +
+  theme_minimal()
+
+
+ggplot(Log_returns,aes(x=IBM))+geom_histogram(aes(y=..density..), fill="salmon",colour="black",binwidth=0.01, position="dodge",alpha=0.5)+
+  stat_function(fun=dnorm, args = list(mean=Means[3],sd=sqrt(Variances[3])), aes( colour="Normal"),size=1) +
+  stat_function(fun=dt2, args = list(mu=Means[3], nu=sqrt(Variances[3]), df=587, ncp=1), aes(colour = 'Student t'), lwd=1) +
+  labs(title="IBM Histogram")+
+  xlab("IBM")+
+  ylab("DENSITY")+
+  theme_minimal()
+
+ggplot(Log_returns,aes(x=VWRET))+geom_histogram(aes(y=..density..), fill="salmon",colour="black",binwidth=0.01, position="dodge",alpha=0.5)+
+  stat_function(fun=dnorm, args = list(mean=Means[4],sd=sqrt(Variances[4])), aes( colour="Normal"),size=1) +
+  stat_function(fun=dt2, args = list(mu=Means[4], nu=sqrt(Variances[4]), df=587, ncp=1), aes(colour = 'Student t'), lwd=1) +
+  labs(title="VWRET Histogram")+
+  xlab("VWRET")+
+  ylab("DENSITY")+
+  theme_minimal()
+
+ggplot(Log_returns,aes(x=EWRET))+geom_histogram(aes(y=..density..), fill="salmon",colour="black",binwidth=0.01, position="dodge",alpha=0.5)+
+  stat_function(fun=dnorm, args = list(mean=Means[5],sd=sqrt(Variances[5])), aes( colour="Normal"),size=1) +
+  stat_function(fun=dt2, args = list(mu=Means[5], nu=sqrt(Variances[5]), df=587,ncp=1), aes(colour = 'Student t'), lwd=1) +
+  labs(title="EWRET Histogram")+
+  xlab("EWRET")+
+  ylab("DENSITY")+
+  theme_minimal()
+
+
+#1g) Jarque-Bera test 
+#The null hypothesis for the test is that the data is normally distributed; the alternate hypothesis is that the data does not come from a normal distribution.
+#In general, a large J-B value indicates that errors are not normally distributed.
+Jarque_Bera_Tests<-sapply(Log_returns[2:6],jarque.test)
+
+#1h) CAPM regressions using value-weighted index
+CocaCola_CAPM<-lm(unlist(Log_returns[5])~unlist(Log_returns[2]))
+summary(CocaCola_CAPM)
+GE_CAPM<-lm(unlist(Log_returns[5])~unlist(Log_returns[3]))
+summary(GE_CAPM)
+IBM_CAPM<-lm(unlist(Log_returns[5])~unlist(Log_returns[4]))
+summary(IBM_CAPM)
+
+
